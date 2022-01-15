@@ -1,0 +1,277 @@
+syntax = "proto2";
+package system73.protocol.p2p;
+
+// Version: 7
+
+// [START objectivec_declaration]
+option objc_class_prefix = "PN";
+// [END objectivec_declaration]
+
+// [START java_declaration]
+option java_package = "com.system73.polynet.protocol.p2p";
+option java_outer_classname = "PeerToPeerProtocol";
+// [END java_declaration]
+
+// A message to request content to the P2P parent.
+// - Flow: child -> parent
+// - Important: The first ContentRequest is compulsory for the parent to start
+// pushing content. The subsequent ContentRequest are optional, depending on
+// the nodes synchronisation.
+message ContentRequest {
+
+    // The identifier of the content, of arbitrary size.
+    // In HLS the media sequence number is used; in DASH the Number or Time is used.
+    required string contentId = 1;
+
+    // The duration of the content. Value in milliseconds.
+    optional uint32 duration = 2;
+
+    // Epoch timestamp in milliseconds that tells when the content appeared in
+    // the CDN, relative to backend clock. In HLS, this timestamp refers to when
+    // the content appeared in the media playlist.
+    optional int64 playbackUpdateTime = 3;
+}
+
+message ContentAborted {
+
+    // The identifier of the content, of arbitrary size.
+    // In HLS the media sequence number is used; in DASH the Number or Time is used.
+    required string contentId = 1;
+}
+
+// A message to start sending content from parent.
+// - Flow: parent -> child
+// - Important: Although the ContentResponseStart should be the first content
+// response to be sent to the child, it cannot be guaranteed due to the
+// unordered delivery of WebRTC data channels.
+message ContentResponseStart {
+
+    // The identifier of the content, of arbitrary size.
+    // In HLS the media sequence number is used; in DASH the Number or Time is used.
+    required string contentId = 1;
+
+    // The length of the content. Value in bytes.
+    optional uint32 contentLength = 2;
+
+    // The amount of chunks representing the content. Each chunk is 16367 bytes
+    // except for the last chunk.
+    optional uint32 chunksAmount = 3;
+
+    // The duration of the content. Value in milliseconds.
+    optional uint32 duration = 4;
+}
+
+// A message representing the partial data (chunk) of the content.
+// - Flow: parent -> child
+// - Important: The order of the ContentResponseProgress is not guaranteed.
+message ContentResponseProgress {
+
+    // The identifier of the content, of arbitrary size.
+    // In HLS the media sequence number is used; in DASH the Number or Time is used.
+    required string contentId = 1;
+
+    // An identifier for the chunk. The first chunk id begins in 0.
+    required uint32 chunkId = 2;
+
+    // The raw bytes of the chunk.
+    required bytes chunkData = 3;
+}
+
+// A message representing the end of content sent by parent.
+// - Flow: parent -> child
+// - Important: Although the ContentResponseEnd should be the last content
+// response to be sent to the child, it cannot be guaranteed due to the
+// unordered delivery of WebRTC data channels.
+message ContentResponseEnd {
+
+    // The identifier of the content, of arbitrary size.
+    // In HLS the media sequence number is used; in DASH the Number or Time is used.
+    required string contentId = 1;
+
+    // The length of the content. Value in bytes.
+    required uint32 contentLength = 2;
+
+    // The amount of chunks representing the content. Each chunk is 16367 bytes
+    // except for the last chunk.
+    required uint32 chunksAmount = 3;
+
+    // A hash that was obtained applying a CRC32 algorithm to the raw data of
+    // the content.
+    required uint32 crc32 = 4;
+}
+
+// A message used to measure the round trip time.
+// - Flow: child -> parent
+// - Important: The Ping is send every 0.5 seconds.
+message Ping {
+}
+
+// A message used to measure the round trip time in response to the Ping.
+// - Flow: parent -> child
+message Pong {
+}
+
+// A message used to ensure that a child is still connected.
+// - Flow: parent -> child
+// - Important: The StillAliveRequest is sent every 30 seconds.
+message StillAliveRequest {
+
+    // An incremental identifier used to differentiate two StillAliveRequests.
+    required uint32 correlationId = 1;
+}
+
+// A message used to response to the StillAliveRequest.
+// - Flow: child -> parent
+message StillAliveResponse {
+
+    // An identifier to match with the StillAliveRequest.
+    required uint32 correlationId = 1;
+}
+
+// A message to send metrics from a child.
+// - Flow: child -> parent
+message Metrics {
+
+    // The rate at which the content is received versus playing time. This is
+    // represented by the amount of playout time received divided by the
+    // download time.
+    // - Implementation: https://docs.google.com/document/d/1qtN5TYr9lIeETPiPa4XVNKeRacSUDyzHgGsJpLtEo2Y/edit
+    // - Rules:
+    //    - The BFR is the computed for the P2P.
+    //    - 0 is sent until the first content is received by the child.
+    //    - If the value is 0 in the current report window, the last
+    //    positive computed value is reported instead.
+    optional float representationBufferFillingRate = 1;
+
+    // Same as representationBufferFillingRate.
+    optional float aggregateBufferFillingRate = 2;
+}
+
+// A message to detects loop in a PolyNet tree branch.
+// - Flow: child -> parent
+// - Important: When a new inbound data channel is created this message is sent to it.
+// When a LoopCheck is received, first check the nodeId and correlationId to check
+// for actives loops. If not in loop, just decrease the finalCountdown and
+// propagate to the next parent. If the finalCountdown is 0, stop propagation.
+message LoopCheck {
+
+    // The original node that sends the LoopCheck.
+    required string nodeId = 1;
+
+    // An UUID to identify a LoopCheck with specific inbound data channel in the node.
+    required string correlationId = 2; // UUID
+
+    // A reverse counter that should be decrement every time the message is
+    // relayed. By default, the initial value is 100.
+    required uint32 finalCountdown = 3;
+}
+
+// A signaling message using in the multi-peer that includes the WebRTC SDP for SCTP.
+// - Flow: parent -> child and child -> parent
+message SignalingSDP {
+
+    // An id to identify the connection being signaling. The value 0 is reserved to the original
+    // connection, which signaling is made through Tracker.
+    required uint32 id = 1;
+
+    // The SDP generated by the WebRTC offer and answer. If not using Ice Trickle, this
+    // includes the reflexives candidates.
+    required string sdp = 2;
+
+    // Indicate the SCTP signaling direction ("offer" or "answer").
+    required string sdpType = 3;
+}
+
+// A signaling message using in the multi-peer that includes the WebRTC negotiation parameters for QUIC.
+// - Flow: parent -> child and child -> parent
+message SignalingQUIC {
+
+    // An id to identify the connection being signaling. Usually the values 0 and 1 are
+    // reserved to the master connections in bidirectional scenario, which signaling is
+    // made through Tracker.
+    required uint32 id = 1;
+
+    // Indicate the QUIC signaling direction ("offer" or "answer"), which is asymmetrical.
+    required string sdpType = 2;
+
+    // Encryption key used by QUIC.
+    optional string key = 3;
+
+    // Free-form string containing additional parameters (i.e. encoded as JSON string).
+    optional string params = 4;
+}
+
+// A signaling message using in the multi-peer that includes the WebRTC Candidates.
+// Flow: parent -> child and child -> parent
+// - Important: This message is used only when Ice Trickle.
+message SignalingCandidate {
+
+    // An id to identify the connection being signaling. Usually the values 0 and 1 are
+    // reserved to the master connections in bidirectional scenario, which signaling is
+    // made through Tracker.
+    required uint32 id = 1;
+
+    // The SDP of the candidate.
+    required string candidateSdp = 2;
+
+    // The identifier of the "media stream identification" for the media component this
+    // candidate is associated with.
+    required string sdpMid = 3;
+
+    // The index (starting at zero) of the media description this candidate is associated
+    // with in the SDP.
+    required int32 sdpMLineIndex = 4;
+}
+
+// A signaling message using in the multi-peer to control direction of WebRTC connections.
+// - Flow: child -> parent
+// - Important: When the parent receives this message, it must take the role of
+// initiating additional WebRTC peer connections, sending the SDP offer.
+message SignalingTakeControl {
+}
+
+// Message to encapsulate the rest of the messages, allowing a quick decodification.
+message Message {
+
+    enum Type {
+        PING = 1;
+        PONG = 2;
+        CONTENT_REQUEST = 3;
+        CONTENT_RESPONSE_START = 4;
+        CONTENT_RESPONSE_PROGRESS = 5;
+        CONTENT_RESPONSE_END = 6;
+        CONTENT_ABORTED = 7;
+
+        STILL_ALIVE_REQUEST = 10;
+        STILL_ALIVE_RESPONSE = 11;
+        METRICS = 12;
+        LOOP_CHECK = 13;
+
+        SIGNALING_SDP = 14;
+        SIGNALING_CANDIDATE = 15;
+        SIGNALING_QUIC = 16;
+        SIGNALING_TAKE_CONTROL = 17;
+    }
+
+    required Type type = 1;
+
+    oneof message {
+        Ping ping = 2;
+        Pong pong = 3;
+        ContentRequest contentRequest = 4;
+        ContentResponseStart contentResponseStart = 5;
+        ContentResponseProgress contentResponseProgress = 6;
+        ContentResponseEnd contentResponseEnd = 7;
+        ContentAborted contentAborted = 8;
+
+        StillAliveRequest stillAliveRequest = 11;
+        StillAliveResponse stillAliveResponse = 12;
+        Metrics metrics = 13;
+        LoopCheck loopCheck = 14;
+
+        SignalingSDP signalingSDP = 15;
+        SignalingCandidate signalingCandidate = 16;
+        SignalingQUIC signalingQUIC = 17;
+        SignalingTakeControl signalingTakeControl = 18;
+    }
+}

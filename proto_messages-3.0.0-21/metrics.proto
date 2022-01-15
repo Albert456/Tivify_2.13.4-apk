@@ -1,0 +1,593 @@
+// Copyright (C) System73 Europe, SL - All Rights Reserved
+// Unauthorized copying of this file, via any medium is strictly prohibited
+// Proprietary and confidential
+// 2017 - present
+
+// R2TC version: 3
+
+syntax = "proto2";
+
+package metrics;
+
+// [START java_declaration]
+option java_package = "com.system73.polynet.protocol.backend";
+option java_outer_classname = "BackendMetricsProtocol";
+// [END java_declaration]
+
+// [START objectivec_declaration]
+option objc_class_prefix = "PNMetrics";
+// [END objectivec_declaration]
+
+//-------------------------------------------------------------------
+// Enum definitions
+
+message Connection {
+
+    // Identifies the status of the SDK connection.
+    enum Status {
+
+        // Changes to this status when assigned as a collector or when
+        // the SDK detects a buffer health critical or a representation change.
+        // Important: While in this status, the WebSocket is open.
+        NO_PARENT = 0;
+
+        // Changes to this status when assigned an inbound P2P by the tracker.
+        // Important: While in this status, the WebSocket is open.
+        P2P_CONNECTING = 1;
+
+        // The inbound P2P data channel is open.
+        // Important: While in this status, the WebSocket is open.
+        P2P_CONNECTED = 2;
+
+        // Used to indicate that the browser does not support WebRTC. Reported only in HTML5.
+        // Important: This status is final and the WebSocket is and will be closed.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        P2P_NOT_SUPPORTED = 3;
+
+        // Used to indicate that the tracker and the peer cannot handshake a tracker protocol version.
+        // Important: This status is final and the WebSocket is and will be closed.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        PROTOCOL_NOT_SUPPORTED = 4;
+
+        // Used to indicate that the peer is playing an HLSEvent and it is out of the live window.
+        // Important: While in this status, the WebSocket is closed, but the peer can open it again.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        CONTENT_NOT_SUPPORTED = 5;
+
+        // Used to indicate that the API key used by the peer is revoked or invalid. A revoked API
+        // key is notified to the peer when the tracker returns an HTTP 403 in the metric sink.
+        // Important: This status is final and the WebSocket is and will be closed.
+        // Important: This status is unused for the moment. When the API is revoked or invalid, the
+        // SDK will stop sending metrics.
+        NOT_ALLOWED = 6;
+
+        // Used to indicate that the API key used has reached the maximum users allowed. In this case,
+        // the tracker closes the WebSocket with the code 4429.
+        // Important: While in this status, the WebSocket is closed, but the peer can open it again.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        MAX_USERS_PER_KEY_REACHED = 7;
+
+        // Used to indicate that the browser does not support the media source extensions. Reported
+        // only in HTML5.
+        // Important: This status is final and the WebSocket is and will be closed.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        MEDIA_SOURCE_EXTENSIONS_NOT_SUPPORTED = 8;
+
+        // Used to indicate that the WebSocket is closed due to an unknown error.
+        // Important: While in this status, the WebSocket is closed, but the peer can open it again.
+        //
+        // Note: Under this condition:
+        //      * The node_id sent in this case will be `no-node-id`
+        //      * The stream_id sent in this case will be `no-stream-id`
+        //      * The masked_stream_uri sent in this case will be `no-masked-stream-uri`
+        //      * The representation_id in this case MIGHT BE sent as `no-representation-id`
+        UNKNOWN_STATUS = 100;
+    }
+
+    enum Type {
+        UNKNOWN = 0;
+        NONE = 1;
+        OTHER = 2;
+        BLUETOOTH = 3;
+        CELLULAR = 4;
+        ETHERNET = 5;
+        WIFI = 6;
+        WIMAX = 7;
+    }
+}
+
+message Nat {
+    enum Type {
+        UNKNOWN = 0;
+        NON_SYMMETRIC = 1;
+        SYMMETRIC = 2;
+        SEQUENTIAL = 3;
+    }
+}
+
+message OperatingSystem {
+    enum Name {
+        UNKNOWN = 0;
+        ANDROID = 1;
+        IOS = 2;
+        LINUX = 3;
+        MACOS = 4;
+        WINDOWS = 5;
+        TVOS = 6;
+    }
+}
+
+message Platform {
+    enum Name {
+        // Keep most values <= 127 for efficient encoding
+
+        // Unknown platform or couldn't find out the platform
+
+        UNKNOWN = 0;
+
+        // Native platforms
+
+        ANDROID = 1;
+        IOS = 2;
+        LINUX = 3;
+        MACOS = 4;
+        WINDOWS = 5;
+
+        // Browsers
+
+        CHROME = 6;
+        CHROMIUM = 7;
+        EDGE = 8;
+        EXPLORER = 9;
+        FIREFOX = 10;
+        OPERA = 11;
+        SAFARI = 12;
+
+        // Other Platforms
+
+        TVOS = 13;
+        ANDROID_TV = 14;
+    }
+}
+
+enum Source {
+    CDN = 0;
+    P2P = 1;
+}
+
+// The inbound protocol identifies the protocol of communication the peer is using.
+// - HTTP: The inbound uses HTTP. This means the peer is a collector.
+// - SCTP: The inbound is P2P and uses 1 or more SCTP connections over WebRTC.
+// - QUIC: The inbound is P2P and uses 1 or more QUIC connections over WebRTC.
+enum InboundProtocol {
+    HTTP = 0;
+    SCTP = 1;
+    QUIC = 2;
+}
+
+enum PeeringType {
+    LAN = 0;
+    INTRA_ASN = 1;
+    INTER_ASN = 2;
+}
+
+// An enum to define the type of error when an estimation with Speedy ends with failure.
+enum UplinkSpeedError {
+    // Unknown error
+    UNKNOWN = 0;
+    // The probe could not be done yet.
+    NOT_READY = 1;
+    // The SPeeDy URL get from the ETCD settings is an empty string or
+    // the URL does not have a correct format.
+    INVALID_SPEEDY_URL = 2;
+    // The request to the SPeeDy HTTP API failed (not 200 OK), got a bad response
+    // (e.g. empty body) or the receiver got an HTTP timeout.
+    API_RESPONSE_ERROR = 3;
+    // The probe result (timeouts list) is received, but it is useless:
+    // error decoding the result, the list is empty or not complete, etc.
+    SPEEDY_INVALID_RESULT = 4;
+    // Error initializing the necessary objects for the probe or sending the packets:
+    // failed the connection to the UDP socket, error creating the WebRTC peer connection, etc.
+    CONNECTION_ERROR = 5;
+    // The algorithm output is not satisfactory.
+    PROBE_FAILED = 6;
+    // The probe has a timeout as a result. It can be triggered by SPeeDy or by the
+    // receiver.
+    // HTML: the timeout is started when the offer is sent (in SPeeDy when the offer is got).
+    // AND/IOS: the timeout is started when the first packet is sent (in SPeeDy when the
+    //          first packet is got).
+    PROBE_TIMEOUT = 7;
+}
+
+//-------------------------------------------------------------------
+// Embedded messages
+
+message Peer {
+
+    // Identifies the node connected as outbound P2P data channel.
+    required string node_id = 1;
+
+    // The P2P Buffer Filling Rate computed in the outbound node. See
+    // aggregate_buffer_filling_rate below.
+    optional float aggregate_buffer_filling_rate = 2;
+
+    // The estimated bandwidth of the uplink against a child peer.
+    // The Bandwidth Estimation Negotiation Protocol is used for negotiation.
+    // - Important: The peer uplink_speed always reports the last computed measure,
+    // being nil if not previous computation has been done for that peer.
+    // Value in Kbps (Kilobits per second).
+    // - Specification: https://docs.google.com/document/d/1XXOsWwuod_2Ea06vrQCrVPcPaFoKP8BN4sLc1pnvs8s
+    optional uint32 uplink_speed = 3;
+
+    // The current connection status of the outbound node.
+    // This field would only take as value P2P_CONNECTING or P2P_CONNECTED
+    optional Connection.Status outbound_connection_status = 4;
+}
+
+message Metrics {
+    // Identification & status fields
+    // Keep most of them in range (1..15) for efficient encoding, if possible
+
+    // Identifies the node running the SDK.
+    // - Important: The node_id reported is the last assigned node_id by the
+    // backend. The node_id DOES NOT change for the WebSocket life cycle.
+    //
+    // This value might be sent as `no-node-id` when we were not able to
+    // create a connection with backend.
+    // See connection_status for more information about this behavior.
+    required string node_id = 1;
+
+    // A universal unique identifier (UUID) for the device running the SDK.
+    // - Important: The UUID obtained depends on the platform and cannot
+    // guarantee persistance between launches.
+    required string device_id = 2;
+
+    // Identifies a set of different streams that together form a unified
+    // program or content from customer’s point of view.
+    // - Important: This is an optional parameter up to the customer to use for
+    // grouping different streams. It will only be used for aggregation purposes.
+    optional string channel_id = 3 [default = "default"];
+
+    // Identifies any variant of the same stream using PolyNet services
+    // (f.i. bitrate). A representation is described by the common URI scheme
+    // that points to the same video content, valid for all viewers. It’s also
+    // known as rendition. It represents second level of indexing in the PolyNet
+    // content mapping schema. Together with the stream_id, they identify a
+    // particular PolyNet tree/swarm.
+    // - Important:
+    // In HLS, it is obtained applying a CRC32 algorithm to the
+    // #EXT-X-STREAM-INF line of the master playlist removing leading and
+    // trailing spaces. In case a media playlist is given the value reported
+    // will be `monobitrate`.
+    // In DASH, it is obtained applying a CRC32 algorithm to
+    // attribute "id" of the tag "representation".
+    //
+    // This value might be sent as `no-representation-id` when we were not able to
+    // create a connection with backend.
+    // See connection_status for more information about this behavior.
+    required string representation_id = 4;
+
+    // Identifies a stream at a given point in time, where all nodes share same
+    // content, possibly in different bitrates. It represents first level of
+    // indexing in the PolyNet content mapping schema. This is a significant
+    // difference with previous implementations since the channel_id was
+    // independent of the manifest or media playlist and did not change over
+    // time.
+    // - Important: The reported stream_id is the last assigned by backend in
+    // the JoinResponse (R2TC version 3). The stream_id is computed by backend
+    // using the stream_url applying to an algorithm.
+    //
+    // This value might be sent as `no-stream-id` when we were not able to
+    // create a connection with backend.
+    // See connection_status for more information about this behavior.
+    required string stream_id = 5;
+
+    // Identifies the source where the video content is currently downloading.
+    // - Implementation: Based on the R2R protocol version 5, the source is
+    // computed saving the source of the last ContentResponseStart or
+    // ContentResponseEnd message of video content received from an CDN or P2P
+    // inbound data channel.
+    required Source source = 6;
+
+    // Identifies from which inbound node is receiving content, if exist.
+    // - Implementation: If the backend has assigned to the SDK a parent p2p
+    // inbound using a join response or move instruction, the
+    // receive_from_node_id is the node_id contained in it. Otherwise, this
+    // metric is not sent.
+    optional string receive_from_node_id = 7;
+
+    // Identifies the type of NAT of the current device connection running the
+    // SDK.
+    required Nat.Type nat_type = 8;
+
+    // Identifies the status of the current device connection running the
+    // SDK.
+    required Connection.Status connection_status = 9;
+
+    // Identifies the type of the current device connection running the
+    // SDK.
+    required Connection.Type connection_type = 10;
+
+    // Identifies the operating system running the SDK.
+    required OperatingSystem.Name operating_system_name = 11;
+
+    // Identifies the version of the operating system running the SDK.
+    required string operating_system_version = 12;
+
+    // Identifies the platform running the SDK.
+    // - Important: The platform is the browser for JavaScript. For natives, the
+    // platform identifies the operating system or a subset of it, like
+    // ANDROID TV over ANDROID.
+    required Platform.Name platform_name = 13;
+
+    // Identifies the version of the platform running the SDK.
+    required string platform_version = 14;
+
+    reserved 15; // settings was deprecated. Use peer_settings instead.
+    reserved "settings"; // settings was deprecated. Use peer_settings instead.
+
+    // Identifies the URI of the stream, masked by backend.
+    // - Important: The masked_stream_uri is obtained by backend applying an
+    // algorithm where the user tokens are removed. The masked_stream_uri
+    // reported is the last assigned by backend in join response.
+    //
+    // This value might be sent as `no-masked-stream-uri` when we were not able to
+    // create a connection with backend.
+    // See connection_status for more information about this behavior.
+    required string masked_stream_uri = 16;
+
+    // Identifies the bitrate currently played by the player in bps (bits per second).
+    // - Implementation: 
+    //    - HLS, the bitrate is computed as the BANDWIDTH field in the #EXT-X-STREAM-INF tag.
+    //    If there is not a master playlist, the bitrate is obtained as an estimation by dividing 
+    //    the segment size into the segment duration, saving always the max of all computed 
+    //    segments. If neither the bitrate nor estimated bitrate exists, then this metrics is not sent.
+    //    - DASH, the bitrate is taken from the attribute "bandwidth" of the "representation" tag.
+    optional string bitrate = 17;
+
+    // A string that describes a JSON object with key and values representing the settings.
+    // The keys and values MUST match exactly the received settings in SDKs, which are the ones
+    // specified in https://system73.atlassian.net/wiki/spaces/Intra/pages/431521793/Polynet+Settings.
+    // This property deprecates the Settings message.
+    // This property is only set in the next metric message after receiving a
+    // polynet_change_settings_instruction acording to Tracker protocol versions 3 and 4.
+    optional string peer_settings = 18;
+
+    // Identifies the version of the PolyNet SDK.
+    optional string sdk_version = 19;
+
+    // Identifies a data channel id that was not established due to WebRTC issues. This is used by the 
+    // Tracker to avoid future connections in some conditions.
+    // - Important: 
+    //    - It is reported ONLY by the child peer.
+    //    - It is reported ONLY ONCE in the following metric sent.
+    //    - It is reported ONLY if the connection timeouts after the child receives a 
+    //    successful handshake_response.
+    //    - The metric is defined as "parent_node_id:self_node_id" where self_node_id SHOULD be equal to 
+    //    the node_id metric.
+    //    - More than one value can be sent in the same metric, if they have been accumulated during
+    //    one sampling period.
+    repeated string datachannel_was_not_established = 20;
+
+    reserved 21 to 30;
+
+    // Metrics: User experience
+
+    // Identifies the size of the available video buffer for the player, measure
+    // in milliseconds.
+    optional int32 buffer_health = 31;
+
+    // Identifies the number of dropped frames in the last report window.
+    optional uint32 dropped_frames_per_second = 32;
+
+    // Indentifies the time in milliseconds beginning with the SDK start until
+    // the player shows the first video frame.
+    optional uint32 time_to_first_frame = 33;
+
+    // Identifies the amount of time video spent buffering, as a percentage of
+    // the total time video was requested/viewed
+    // (Buffering duration / playback duration)
+    // - Important: This parameter is strictly related to playback_time.
+    // If the last is sent, then this parameter must be sent too. See doc.
+    // - Implementation: https://docs.google.com/document/d/1bE3Kd3u0vu3xOa1nWFO5NTlE19czMjNGsksHQY7d8jw
+    optional float buffering_ratio = 34;
+
+    // Identifies the playback total duration in seconds.
+    // - Important: This parameter is strictly related to buffering_ratio.
+    // If the last is sent, then this parameter must be sent too. See doc.
+    // - Implementation: https://docs.google.com/document/d/1bE3Kd3u0vu3xOa1nWFO5NTlE19czMjNGsksHQY7d8jw
+    // Unit: seconds.
+    optional float playback_time = 35;
+
+    reserved 36 to 40;
+
+    // Metrics: Network performance
+
+    // The rate at which the content is received versus playing time. This is
+    // represented by the amount of playout time received divided by the
+    // download time.
+    // - Implementation: https://docs.google.com/document/d/1qtN5TYr9lIeETPiPa4XVNKeRacSUDyzHgGsJpLtEo2Y/edit
+    // - Rules:
+    //    - The BFR is computed only for video content.
+    //    - The BRF is computed separately for sources .cdn and .p2p.
+    //    - If the value is 0 in the current report window, the last
+    //    positive computed value is reported instead.
+    //    - If the SDK is in QoS state (Buffer buffer health critical and not
+    //    assigned as collector) a 0 is reported.
+    //    - Every time the inbound P2P changes its state, the BFR_P2P is reset.
+    //    - When connection status is NO_PARENT the BFR_CDN is used.
+    //    - When connection status is P2P_CONNECTING, a 0 is reported.
+    //    - When connection status is P2P_CONNECTED, the BFR_P2P is used.
+    optional float aggregate_buffer_filling_rate = 41;
+
+    // Same value as aggregate_buffer_filling_rate.
+    optional float representation_buffer_filling_rate = 42;
+
+    // The amount of data as payload received from the CDN during the last
+    // reporting period. Value in Kbits (Kilobits).
+    // - Important: This includes video, playlists, subtitles, audio, etc.
+    optional uint32 cdn_downlink_throughput = 43;
+
+    // The amount of data as payload received from P2P during the last reporting
+    // period. Value in Kbits (Kilobits).
+    // - Important: This includes only video.
+    optional uint32 p2p_downlink_throughput = 44;
+
+    // The total size of downloaded data divided by the download time. Value in
+    // Kbps (Kilobits per second).
+    // - Implementation: https://docs.google.com/document/d/1qtN5TYr9lIeETPiPa4XVNKeRacSUDyzHgGsJpLtEo2Y/edit
+    // - Rules: Only video content is computed.
+    optional uint32 downlink_speed = 45;
+
+    // The upload speed estimated using the tracker SPeeDy service.
+    // The "Estimating upload capacity" document specifies the protocol and the process of negotiation.
+    // - Important: The uplink_speed always reports the last estimated measure, not matter if success or failure,
+    // being nil if not previous computation has been done against the speedy service.
+    // Value in Kbps (Kilobits per second).
+    // - Specification: https://docs.google.com/document/d/12A6D1nH3UVoKY-p9rcO5pnXW_QJZqc83Co6fJE-zcZk
+    optional uint32 uplink_speed = 46;
+
+    // The amount of time between sending a data packet from a child node to its
+    // inbound P2P peer and back. Value in milliseconds.
+    // Rules: When multiples values exist in a report window an avarage those
+    // values is used.
+    optional uint32 round_trip_time = 47;
+
+    // Not used. Deprecated.
+    optional float interarrival_jitter = 48;
+
+    // Not used.
+    optional uint32 packet_loss = 49;
+
+    // The response time for a join request - response with backend. Value in
+    // milliseconds.
+    optional uint32 join_response_time = 50;
+
+    // The response times measured for PolyNet contents (video segments) that
+    // were downloaded from CDN starting when the player requests the resource and
+    // ending when the player receives the first chunk of that resourse. For SDKs
+    // that use proxy (iOS, ANDROID), the measure starts when the SDK receives
+    // the HTTP GET request and ends when the SDK sends the first chunk of the
+    // response body.
+    // This repeated value can have between 0 and N values, being N the
+    // number of segments downloaded from CDN in the sampling window.
+    // - Specification: https://docs.google.com/document/d/14Jd6pd1tGM_rER_rapV-1-Et8SraoRavLN-Dy2_ksnM
+    // Value in milliseconds.
+    repeated uint32 content_request_response_times_cdn = 51;
+
+    // The response times measured for PolyNet contents (video segments) that
+    // were downloaded from P2P starting when the player requests the resource and
+    // ending when the player receives the first chunk of that resourse. For SDKs
+    // that use proxy (iOS, ANDROID), the measure starts when the SDK receives
+    // the HTTP GET request and ends when the SDK sends the first chunk of the
+    // response body.
+    // This repeated value can have between 0 and N values, being N the
+    // number of segments downloaded from P2P in the sampling window.
+    // - Specification: https://docs.google.com/document/d/14Jd6pd1tGM_rER_rapV-1-Et8SraoRavLN-Dy2_ksnM
+    // Value in milliseconds.
+    repeated uint32 content_request_response_times_p2p = 52;
+
+    // Specifies the communication protocol the peer is using. See InboundTransportType for further detail.
+    // - Important: The inbound transport type DOES NOT depend on the source, but in the connection
+    // status. This means that the value can be SCTP or QUIC and source can be CDN, as it is, in
+    // case of a countermeasure.
+    optional InboundProtocol inbound_protocol = 53;
+
+    // The number of connections between the peer and its parent. By default, the value 1 is
+    // always used except in the following case:
+    // - If inbound_transport_type is SCTP or QUIC and multi peer used, then this number tells
+    // how many total connections are open between the peer and it P2P parent.
+    optional uint32 inbound_connection_count = 54 [default = 1];
+
+    // The result of the throughput probe estimation between peers made when the P2P
+    // connection opens. By default, the value of this metric is -1. This value is always used
+    // except in the following cases:
+    // - The P2P connection has been open and a throughput probe has finished with success.
+    // In this case, an estimation value greater than 0 is reported. This value endures for
+    // the life of the inbound or until a new throughput probe is done.
+    // - The P2P connection has been open and a throughput probe has finished with error, in
+    // this case, the value of 0 is reported. This value endures for the life of the inbound or
+    // until a new throughput probe is done.
+    // Value in Kbps (Kilobits per second).
+    optional int32 inbound_throughput_probe = 55 [default = -1];
+
+    // The uplink capacity gives an approximation of the number of outbound connections that a peer
+    // can maintain with its current video representation. It is used by the Topology Optimization 
+    // Engine (TOE) service to reorder the peer tree.
+    //
+    // This metric is computed by dividing the uplink_speed into the video bitrate being played. If any
+    // of those values are not available, then -1 is reported. In that case, the TOE is going to use 
+    // an alternative way to approximate the uplink_capacity.
+    // - Important: An uplink_capacity of 0 means that the TOE will not assign any child to the peer.
+    optional float uplink_capacity = 56 [default = -1];
+
+    reserved 57; // uplink_capacity_error was deprecated. Use uplink_speed_error instead.
+    reserved "uplink_capacity_error"; // uplink_capacity_error was deprecated. Use uplink_speed_error instead.
+
+    /// The type of relation between the self peer and the inbound parent peer.
+    ///
+    /// - LAN: In the same LAN.
+    /// - INTRA_ASN: In the same ASN.
+    /// - INTER_ASN: In different ASNs.
+    optional PeeringType inbound_peering_type = 58;
+
+    // Set the error or state for the Speedy measurement. If the uplink_speed is nil, then this
+    // property should be set. 
+    // - Important: Every time a new estimation with Speedy ends, this value should be updated, being nil
+    // if it is successful.
+    optional UplinkSpeedError uplink_speed_error = 59;
+
+    reserved 60;
+
+    // Metrics: Device performance
+
+    // Not used.
+    optional uint32 cpu_load = 61;
+
+    reserved 62 to 70;
+
+    // Metrics: Other
+
+    reserved 71 to 100;
+
+    repeated Peer peers = 101;
+}
+
+//-------------------------------------------------------------------
+// Main meta-message
+
+message Message {
+    enum Type {
+        METRICS = 0; // message Metrics
+    }
+
+    required Type type = 1;
+    oneof message {
+        Metrics metrics = 2;
+    }
+}
